@@ -503,6 +503,48 @@ public:
     }
 };
 
+using MethodHandle = std::function<Json(jsonrpcpp::request_ptr request)>;
+using MethodHandleMap = std::map<std::string, MethodHandle>;
+
+class Dispatcher
+{
+
+public:
+    Dispatcher(/* args */) : methods_(){};
+    ~Dispatcher(){};
+
+    bool Add(const std::string& name, MethodHandle callback)
+    {
+        if (contains(name))
+            return false;
+        methods_[name] = std::move(callback);
+        return true;
+    }
+
+    Json InvokeMethod(jsonrpcpp::request_ptr request)
+    {
+        auto method = methods_.find(request->method());
+        if (method == methods_.end())
+        {
+            throw jsonrpcpp::MethodNotFoundException(*request);
+        }
+
+        if (request->params())
+        {
+            return method->second(request);
+        }
+        throw jsonrpcpp::InvalidParamsException(*request);
+    }
+
+private:
+    /* data */
+    MethodHandleMap methods_;
+    inline bool contains(const std::string& name)
+    {
+        return (methods_.find(name) != methods_.end());
+    }
+};
+
 
 
 /////////////////////////// Entity implementation /////////////////////////////

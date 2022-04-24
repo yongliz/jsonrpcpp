@@ -7,47 +7,66 @@
 ***/
 
 
+// #include "dispatcher.hpp"
 #include "jsonrpcpp.hpp"
 #include <iostream>
 
 using namespace std;
 
+Json my_subtract(jsonrpcpp::request_ptr request)
+{
+    std::cout << __PRETTY_FUNCTION__ << std::endl;
+
+    std::cout << "request.count.2========>>>" << request.use_count() << std::endl;
+    int result;
+    if (request->params().is_array())
+        result = request->params().get<int>(0) - request->params().get<int>(1);
+    else
+        result = request->params().get<int>("minuend") - request->params().get<int>("subtrahend");
+
+    return Json(result);
+}
+
+jsonrpcpp::Dispatcher g_dispatcher;
 
 jsonrpcpp::Parser parser;
 
 
 jsonrpcpp::Response getRespone(jsonrpcpp::request_ptr request)
 {
-    // cout << " Request: " << request->method << ", id: " << request->id << ", has params: " << !request->params().is_null() << "\n";
-    if (request->method() == "subtract")
-    {
-        if (request->params())
-        {
-            int result;
-            if (request->params().is_array())
-                result = request->params().get<int>(0) - request->params().get<int>(1);
-            else
-                result = request->params().get<int>("minuend") - request->params().get<int>("subtrahend");
 
+    return jsonrpcpp::Response(*request, g_dispatcher.InvokeMethod(request));
+
+    /*    // cout << " Request: " << request->method << ", id: " << request->id << ", has params: " << !request->params().is_null() << "\n";
+        if (request->method() == "subtract")
+        {
+            if (request->params())
+            {
+                int result;
+                if (request->params().is_array())
+                    result = request->params().get<int>(0) - request->params().get<int>(1);
+                else
+                    result = request->params().get<int>("minuend") - request->params().get<int>("subtrahend");
+
+                return jsonrpcpp::Response(*request, result);
+            }
+            throw jsonrpcpp::InvalidParamsException(*request);
+        }
+        else if (request->method() == "sum")
+        {
+            int result = 0;
+            for (const auto& summand : request->params().param_array)
+                result += summand.get<int>();
             return jsonrpcpp::Response(*request, result);
         }
-        throw jsonrpcpp::InvalidParamsException(*request);
-    }
-    else if (request->method() == "sum")
-    {
-        int result = 0;
-        for (const auto& summand : request->params().param_array)
-            result += summand.get<int>();
-        return jsonrpcpp::Response(*request, result);
-    }
-    else if (request->method() == "get_data")
-    {
-        return jsonrpcpp::Response(*request, Json({"hello", 5}));
-    }
-    else
-    {
-        throw jsonrpcpp::MethodNotFoundException(*request);
-    }
+        else if (request->method() == "get_data")
+        {
+            return jsonrpcpp::Response(*request, Json({"hello", 5}));
+        }
+        else
+        {
+            throw jsonrpcpp::MethodNotFoundException(*request);
+        }*/
 }
 
 
@@ -170,6 +189,8 @@ jsonrpcpp::response_ptr sum(const jsonrpcpp::Id& id, const jsonrpcpp::Parameter&
 // examples taken from: http://www.jsonrpc.org/specification#examples
 int main(int /*argc*/, char** /*argv*/)
 {
+    g_dispatcher.Add("subtract", my_subtract);
+
     parser.register_notification_callback("update", update);
     parser.register_notification_callback("foobar", foobar);
     parser.register_request_callback("sum", sum);
